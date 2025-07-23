@@ -7,7 +7,7 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import OpenAIEmbeddings
 from langchain.chains.question_answering import load_qa_chain
-from langchain.chat_models import ChatOpenAI
+from langchain_community.chat_models import ChatOpenAI
 
 # Load .env variables
 load_dotenv()
@@ -28,9 +28,6 @@ if not api_key:
 st.set_page_config(page_title="Chat with Your PDFs")
 st.title("📚 Chat with Your PDFs")
 
-# File upload
-uploaded_files = st.file_uploader("Upload one or more PDF files", type="pdf", accept_multiple_files=True)
-
 # FAISS persistent directory
 FAISS_DIR = "storage/faiss_index"
 os.makedirs(FAISS_DIR, exist_ok=True)
@@ -43,28 +40,28 @@ def load_vectorstore():
 
 vectorstore = load_vectorstore()
 
-# Process PDF files if uploaded
-if uploaded_files:
-    raw_text = ""
-    for uploaded_file in uploaded_files:
-        pdf_reader = PdfReader(uploaded_file)
-        for page in pdf_reader.pages:
-            text = page.extract_text()
-            if text:
-                raw_text += text
+# Only allow upload if vectorstore doesn't exist yet
+if not vectorstore:
+    uploaded_files = st.file_uploader("Upload one or more PDF files (only required once)", type="pdf", accept_multiple_files=True)
 
-    text_splitter = CharacterTextSplitter(separator="\n", chunk_size=1000, chunk_overlap=200, length_function=len)
-    texts = text_splitter.split_text(raw_text)
+    if uploaded_files:
+        raw_text = ""
+        for uploaded_file in uploaded_files:
+            pdf_reader = PdfReader(uploaded_file)
+            for page in pdf_reader.pages:
+                text = page.extract_text()
+                if text:
+                    raw_text += text
 
-    embeddings = OpenAIEmbeddings()
+        text_splitter = CharacterTextSplitter(separator="\n", chunk_size=1000, chunk_overlap=200, length_function=len)
+        texts = text_splitter.split_text(raw_text)
 
-    if vectorstore:
-        vectorstore.add_texts(texts)
-    else:
+        embeddings = OpenAIEmbeddings()
         vectorstore = FAISS.from_texts(texts, embedding=embeddings)
-
-    vectorstore.save_local(FAISS_DIR)
-    st.success("PDFs processed and saved successfully!")
+        vectorstore.save_local(FAISS_DIR)
+        st.success("PDFs processed and saved successfully! You can now ask questions.")
+else:
+    st.info("📦 Previously uploaded PDFs loaded from storage. You can now ask questions.")
 
 # Ask questions
 query = st.text_input("💬 Ask a question about your PDFs")
