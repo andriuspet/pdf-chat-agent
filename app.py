@@ -40,7 +40,7 @@ if not AUTHORIZED:
     st.stop()
 
 # FAISS persistent directory
-FAISS_DIR = "/mnt/data/faiss_index"
+FAISS_DIR = "faiss_index"
 os.makedirs(FAISS_DIR, exist_ok=True)
 
 # Load or create FAISS vectorstore
