@@ -51,7 +51,7 @@ def load_vectorstore():
 
 vectorstore = load_vectorstore()
 
-# Only allow upload if vectorstore doesn't exist yet
+# Upload PDF files if needed
 if not vectorstore:
     uploaded_files = st.file_uploader("📁 Upload one or more PDF files (only required once)", type="pdf", accept_multiple_files=True)
 
@@ -70,7 +70,6 @@ if not vectorstore:
         embeddings = OpenAIEmbeddings()
 
         if os.path.exists(os.path.join(FAISS_DIR, "index.faiss")):
-            # Įkeliam seną duomenų bazę
             existing_vectorstore = FAISS.load_local(FAISS_DIR, embeddings, allow_dangerous_deserialization=True)
             existing_vectorstore.add_texts(texts)
             existing_vectorstore.save_local(FAISS_DIR)
