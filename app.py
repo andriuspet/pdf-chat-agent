@@ -6,8 +6,8 @@ from PyPDF2 import PdfReader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import OpenAIEmbeddings
-from langchain.chains.question_answering import load_qa_chain
 from langchain_community.chat_models import ChatOpenAI
+from langchain.chains.question_answering import load_qa_chain
 
 # Load .env variables
 load_dotenv()
@@ -23,10 +23,6 @@ if not api_key:
         st.rerun()
     else:
         st.stop()
-
-# Page setup
-st.set_page_config(page_title="Chat with Your PDFs")
-st.title("📚 Chat with Your PDFs")
 
 # Page setup
 st.set_page_config(page_title="Chat with Your PDFs")
@@ -57,7 +53,7 @@ vectorstore = load_vectorstore()
 
 # Only allow upload if vectorstore doesn't exist yet
 if not vectorstore:
-    uploaded_files = st.file_uploader("Upload one or more PDF files (only required once)", type="pdf", accept_multiple_files=True)
+    uploaded_files = st.file_uploader("📁 Upload one or more PDF files (only required once)", type="pdf", accept_multiple_files=True)
 
     if uploaded_files:
         raw_text = ""
@@ -71,23 +67,24 @@ if not vectorstore:
         text_splitter = CharacterTextSplitter(separator="\n", chunk_size=1000, chunk_overlap=200, length_function=len)
         texts = text_splitter.split_text(raw_text)
 
-       embeddings = OpenAIEmbeddings()
+        embeddings = OpenAIEmbeddings()
 
-if os.path.exists(os.path.join(FAISS_DIR, "index.faiss")):
-    # Įkeliam seną duomenų bazę
-    existing_vectorstore = FAISS.load_local(FAISS_DIR, embeddings, allow_dangerous_deserialization=True)
-    existing_vectorstore.add_texts(texts)
-    existing_vectorstore.save_local(FAISS_DIR)
-    vectorstore = existing_vectorstore
-else:
-    vectorstore = FAISS.from_texts(texts, embedding=embeddings)
-    vectorstore.save_local(FAISS_DIR)
-        st.success("PDFs processed and saved successfully! You can now ask questions.")
-else:
-    st.info("📦 Previously uploaded PDFs loaded from storage. You can now ask questions.")
+        if os.path.exists(os.path.join(FAISS_DIR, "index.faiss")):
+            # Įkeliam seną duomenų bazę
+            existing_vectorstore = FAISS.load_local(FAISS_DIR, embeddings, allow_dangerous_deserialization=True)
+            existing_vectorstore.add_texts(texts)
+            existing_vectorstore.save_local(FAISS_DIR)
+            vectorstore = existing_vectorstore
+        else:
+            vectorstore = FAISS.from_texts(texts, embedding=embeddings)
+            vectorstore.save_local(FAISS_DIR)
 
-# Ask questions
-query = st.text_input("💬 Ask a question about your PDFs")
+        st.success("✅ PDFs apdoroti ir išsaugoti! Galite užduoti klausimus.")
+else:
+    st.info("📦 Anksčiau įkelti PDF'ai įkelti iš atminties. Galite klausti klausimų.")
+
+# Klausimų uždavimas
+query = st.text_input("💬 Užduok klausimą apie savo PDF'us")
 if query and vectorstore:
     docs = vectorstore.similarity_search(query)
     llm = ChatOpenAI(temperature=0)
@@ -95,4 +92,4 @@ if query and vectorstore:
     response = chain.run(input_documents=docs, question=query)
     st.write(response)
 elif query:
-    st.warning("Please upload and process PDFs first.")
+    st.warning("📄 Pirmiausia reikia įkelti ir apdoroti PDF failus.")
