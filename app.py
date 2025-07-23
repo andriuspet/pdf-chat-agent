@@ -71,8 +71,9 @@ if not vectorstore:
         text_splitter = CharacterTextSplitter(separator="\n", chunk_size=1000, chunk_overlap=200, length_function=len)
         texts = text_splitter.split_text(raw_text)
 
-        embeddings = OpenAIEmbeddings()
-        if os.path.exists(os.path.join(FAISS_DIR, "index.faiss")):
+       embeddings = OpenAIEmbeddings()
+
+if os.path.exists(os.path.join(FAISS_DIR, "index.faiss")):
     # Įkeliam seną duomenų bazę
     existing_vectorstore = FAISS.load_local(FAISS_DIR, embeddings, allow_dangerous_deserialization=True)
     existing_vectorstore.add_texts(texts)
