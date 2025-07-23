@@ -26,7 +26,7 @@ if not st.session_state.authenticated:
     password = st.text_input("Įveskite slaptažodį:", type="password")
     if password == PASSWORD:
         st.session_state.authenticated = True
-        st.experimental_rerun()
+        st.rerun()
     else:
         st.stop()
 
