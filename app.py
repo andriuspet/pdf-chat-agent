@@ -5,11 +5,12 @@ from pathlib import Path
 from PyPDF2 import PdfReader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from langchain.chains.question_answering import load_qa_chain
-from langchain_community.chat_models import ChatOpenAI
+from langchain.chat_models import ChatOpenAI
+import json
 
-# Load .env variables
+# Load environment variables
 load_dotenv()
 ENV_PATH = Path(".env")
 
@@ -41,6 +42,10 @@ def load_vectorstore():
 
 vectorstore = load_vectorstore()
 
+# Initialize chat history
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
 # Only allow upload if vectorstore doesn't exist yet
 if not vectorstore:
     uploaded_files = st.file_uploader("Upload one or more PDF files (only required once)", type="pdf", accept_multiple_files=True)
@@ -58,8 +63,8 @@ if not vectorstore:
         texts = text_splitter.split_text(raw_text)
 
         embeddings = OpenAIEmbeddings()
-
         if os.path.exists(os.path.join(FAISS_DIR, "index.faiss")):
+            # Įkeliam seną duomenų bazę ir papildom
             existing_vectorstore = FAISS.load_local(FAISS_DIR, embeddings, allow_dangerous_deserialization=True)
             existing_vectorstore.add_texts(texts)
             existing_vectorstore.save_local(FAISS_DIR)
@@ -73,12 +78,31 @@ else:
     st.info("📦 Previously uploaded PDFs loaded from storage. You can now ask questions.")
 
 # Ask questions
-query = st.text_input("💬 Ask a question about your PDFs")
+query = st.text_input("💬 Ask a question about your PDFs", key="user_input")
 if query and vectorstore:
     docs = vectorstore.similarity_search(query)
     llm = ChatOpenAI(temperature=0)
     chain = load_qa_chain(llm, chain_type="stuff")
     response = chain.run(input_documents=docs, question=query)
-    st.write(response)
+
+    # Save to session state
+    st.session_state.chat_history.append({"question": query, "answer": response})
+
+# Export history
+if st.session_state.chat_history:
+    export = st.button("⬇️ Export Chat History")
+    if export:
+        json_str = json.dumps(st.session_state.chat_history, indent=2, ensure_ascii=False)
+        st.download_button("Download History as JSON", data=json_str, file_name="chat_history.json", mime="application/json")
+
+# Display chat history
+if st.session_state.chat_history:
+    st.markdown("---")
+    st.markdown("### 🕘 Chat History")
+    for entry in reversed(st.session_state.chat_history):
+        st.markdown(f"**You:** {entry['question']}")
+        st.markdown(f"**Assistant:** {entry['answer']}")
+        st.markdown("---")
+
 elif query:
     st.warning("Please upload and process PDFs first.")
