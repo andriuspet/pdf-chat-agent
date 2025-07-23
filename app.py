@@ -6,8 +6,8 @@ from PyPDF2 import PdfReader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import OpenAIEmbeddings
-from langchain_community.chat_models import ChatOpenAI
 from langchain.chains.question_answering import load_qa_chain
+from langchain_community.chat_models import ChatOpenAI
 
 # Load .env variables
 load_dotenv()
@@ -18,26 +18,16 @@ api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     api_key_input = st.text_input("🔑 Enter your OpenAI API key:", type="password")
     if api_key_input:
-        ENV_PATH.write_text(f"OPENAI_API_KEY={api_key_input}")
-        st.success("API key saved. Reloading...")
-        st.rerun()
+        with open(".env", "w") as f:
+            f.write(f"OPENAI_API_KEY={api_key_input}")
+        st.success("API key saved. Please reload the page.")
+        st.stop()
     else:
         st.stop()
 
 # Page setup
 st.set_page_config(page_title="Chat with Your PDFs")
 st.title("📚 Chat with Your PDFs")
-
-# Slaptažodžio tikrinimas
-AUTHORIZED = False
-password = st.text_input("🔐 Įveskite slaptažodį norėdami tęsti:", type="password")
-if password == "milijonas":
-    AUTHORIZED = True
-else:
-    st.warning("Įveskite teisingą slaptažodį norėdami naudotis sistema.")
-
-if not AUTHORIZED:
-    st.stop()
 
 # FAISS persistent directory
 FAISS_DIR = "faiss_index"
@@ -51,9 +41,9 @@ def load_vectorstore():
 
 vectorstore = load_vectorstore()
 
-# Upload PDF files if needed
+# Only allow upload if vectorstore doesn't exist yet
 if not vectorstore:
-    uploaded_files = st.file_uploader("📁 Upload one or more PDF files (only required once)", type="pdf", accept_multiple_files=True)
+    uploaded_files = st.file_uploader("Upload one or more PDF files (only required once)", type="pdf", accept_multiple_files=True)
 
     if uploaded_files:
         raw_text = ""
@@ -78,12 +68,12 @@ if not vectorstore:
             vectorstore = FAISS.from_texts(texts, embedding=embeddings)
             vectorstore.save_local(FAISS_DIR)
 
-        st.success("✅ PDFs apdoroti ir išsaugoti! Galite užduoti klausimus.")
+        st.success("PDFs processed and saved successfully! You can now ask questions.")
 else:
-    st.info("📦 Anksčiau įkelti PDF'ai įkelti iš atminties. Galite klausti klausimų.")
+    st.info("📦 Previously uploaded PDFs loaded from storage. You can now ask questions.")
 
-# Klausimų uždavimas
-query = st.text_input("💬 Užduok klausimą apie savo PDF'us")
+# Ask questions
+query = st.text_input("💬 Ask a question about your PDFs")
 if query and vectorstore:
     docs = vectorstore.similarity_search(query)
     llm = ChatOpenAI(temperature=0)
@@ -91,4 +81,4 @@ if query and vectorstore:
     response = chain.run(input_documents=docs, question=query)
     st.write(response)
 elif query:
-    st.warning("📄 Pirmiausia reikia įkelti ir apdoroti PDF failus.")
+    st.warning("Please upload and process PDFs first.")
