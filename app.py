@@ -28,6 +28,21 @@ if not api_key:
 st.set_page_config(page_title="Chat with Your PDFs")
 st.title("📚 Chat with Your PDFs")
 
+# Page setup
+st.set_page_config(page_title="Chat with Your PDFs")
+st.title("📚 Chat with Your PDFs")
+
+# Slaptažodžio tikrinimas
+AUTHORIZED = False
+password = st.text_input("🔐 Įveskite slaptažodį norėdami tęsti:", type="password")
+if password == "milijonas":
+    AUTHORIZED = True
+else:
+    st.warning("Įveskite teisingą slaptažodį norėdami naudotis sistema.")
+
+if not AUTHORIZED:
+    st.stop()
+
 # FAISS persistent directory
 FAISS_DIR = "/mnt/data/faiss_index"
 os.makedirs(FAISS_DIR, exist_ok=True)
