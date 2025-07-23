@@ -29,7 +29,7 @@ st.set_page_config(page_title="Chat with Your PDFs")
 st.title("📚 Chat with Your PDFs")
 
 # FAISS persistent directory
-FAISS_DIR = "storage/faiss_index"
+FAISS_DIR = "/mnt/data/faiss_index"
 os.makedirs(FAISS_DIR, exist_ok=True)
 
 # Load or create FAISS vectorstore
