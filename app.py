@@ -57,8 +57,15 @@ if not vectorstore:
         texts = text_splitter.split_text(raw_text)
 
         embeddings = OpenAIEmbeddings()
-        vectorstore = FAISS.from_texts(texts, embedding=embeddings)
-        vectorstore.save_local(FAISS_DIR)
+        if os.path.exists(os.path.join(FAISS_DIR, "index.faiss")):
+    # Įkeliam seną duomenų bazę
+    existing_vectorstore = FAISS.load_local(FAISS_DIR, embeddings, allow_dangerous_deserialization=True)
+    existing_vectorstore.add_texts(texts)
+    existing_vectorstore.save_local(FAISS_DIR)
+    vectorstore = existing_vectorstore
+else:
+    vectorstore = FAISS.from_texts(texts, embedding=embeddings)
+    vectorstore.save_local(FAISS_DIR)
         st.success("PDFs processed and saved successfully! You can now ask questions.")
 else:
     st.info("📦 Previously uploaded PDFs loaded from storage. You can now ask questions.")
